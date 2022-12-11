@@ -8,6 +8,7 @@
 import logging
 
 from charms.oai_5g_amf.v0.fiveg_n2 import FiveGN2Requires  # type: ignore[import]
+from charms.oai_5g_cu.v0.fiveg_f1 import FiveGF1Provides  # type: ignore[import]
 from charms.observability_libs.v1.kubernetes_service_patch import (  # type: ignore[import]
     KubernetesServicePatch,
     ServicePort,
@@ -15,7 +16,7 @@ from charms.observability_libs.v1.kubernetes_service_patch import (  # type: ign
 from jinja2 import Environment, FileSystemLoader
 from ops.charm import CharmBase, ConfigChangedEvent, InstallEvent
 from ops.main import main
-from ops.model import ActiveStatus, BlockedStatus, WaitingStatus
+from ops.model import ActiveStatus, BlockedStatus, ModelError, WaitingStatus
 
 from kubernetes import Kubernetes
 
@@ -52,7 +53,7 @@ class Oai5GCUOperatorCharm(CharmBase):
                 ServicePort(
                     name="x2c",
                     port=int(self._config_gnb_x2c_port),
-                    protocol="TCP",
+                    protocol="UDP",
                     targetPort=int(self._config_gnb_x2c_port),
                 ),
                 ServicePort(
@@ -63,11 +64,48 @@ class Oai5GCUOperatorCharm(CharmBase):
                 ),
             ],
         )
+        self.f1_provides = FiveGF1Provides(self, "fiveg-f1")
         self.amf_n2_requires = FiveGN2Requires(self, "fiveg-n2")
         self.kubernetes = Kubernetes(namespace=self.model.name)
         self.framework.observe(self.on.install, self._on_install)
         self.framework.observe(self.on.config_changed, self._on_config_changed)
         self.framework.observe(self.on.fiveg_n2_relation_changed, self._on_config_changed)
+        self.framework.observe(self.on.fiveg_f1_relation_joined, self._on_fiveg_f1_relation_joined)
+
+    def _on_fiveg_f1_relation_joined(self, event) -> None:
+        """Triggered when a relation is joined.
+
+        Args:
+            event: Relation Joined Event
+        """
+        if not self.unit.is_leader():
+            return
+        if not self._cu_service_started:
+            logger.info("CU service not started yet, deferring event")
+            event.defer()
+            return
+        cu_hostname, cu_ipv4_address = self.kubernetes.get_service_load_balancer_address(
+            name=self.app.name
+        )
+        if not cu_ipv4_address:
+            raise Exception("Loadbalancer doesn't have an IP address")
+        self.f1_provides.set_cu_information(
+            cu_address=cu_ipv4_address,
+            cu_port=self._config_f1_cu_port,
+            relation_id=event.relation.id,
+        )
+
+    @property
+    def _cu_service_started(self) -> bool:
+        if not self._container.can_connect():
+            return False
+        try:
+            service = self._container.get_service(self._service_name)
+        except ModelError:
+            return False
+        if not service.is_running():
+            return False
+        return True
 
     def _on_install(self, event: InstallEvent) -> None:
         """Triggered on install event.
