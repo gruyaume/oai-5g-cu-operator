@@ -139,7 +139,6 @@ class Oai5GCUOperatorCharm(CharmBase):
         if not self._amf_n2_relation_created:
             self.unit.status = BlockedStatus("Waiting for relation to AMF to be created")
             return
-
         if not self.amf_n2_requires.amf_address_available:
             self.unit.status = WaitingStatus(
                 "Waiting for AMF IPv4 address to be available in relation data"

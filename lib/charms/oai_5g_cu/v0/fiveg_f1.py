@@ -93,6 +93,7 @@ class FiveGF1Requires(Object):
             return
         self.on.cu_available.emit(
             cu_address=remote_app_relation_data["cu_address"],
+            cu_port=remote_app_relation_data["cu_port"],
         )
 
     @property
