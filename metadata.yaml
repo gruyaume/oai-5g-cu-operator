@@ -1,0 +1,30 @@
+name: oai-5g-cu
+
+summary: OpenAirInterface 5G Core Network cu
+
+description: |
+  OPENAIR-CN-5G is an implementation of the 3GPP specifications for the 5G Core Network. This 
+  charms deploys the cu component of the 5G Core Network.
+
+containers:
+  cu:
+    resource: cu-image
+    mounts:
+      - storage: config
+        location: /opt/oai-gnb/etc
+
+storage:
+  config:
+    type: filesystem
+    description: cu Config directory
+    minimum-size: 1G
+
+resources:
+  cu-image:
+    type: oci-image
+    description: OCI image for cu
+    upstream-source: docker.io/oaisoftwarealliance/oai-gnb:develop
+
+requires:
+  fiveg-n2:
+    interface: fiveg-n2
