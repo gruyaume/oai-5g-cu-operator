@@ -1,4 +1,4 @@
-Active_gNBs = ( "oai-cu-rfsim");
+Active_gNBs = ( "{{ gnb_cu_name }}");
 # Asn1_verbosity, choice in: none, info, annoying
 Asn1_verbosity = "none";
 Num_Threads_PUSCH = 8;
@@ -7,15 +7,15 @@ gNBs =
 (
  {
     ////////// Identification parameters:
-    gNB_ID = 0xe00;
+    gNB_ID = 0x{{ gnb_cu_id }};
 
 #     cell_type =  "CELL_MACRO_GNB";
 
     gNB_name  =  "{{ gnb_cu_name }}";
 
     // Tracking area code, 0x0000 and 0xfffe are reserved values
-    tracking_area_code  =  1;
-    plmn_list = ({ mcc = {{ mcc }}; mnc = {{ mnc }}; mnc_length = {{ mnc_length }}; snssaiList = ({ sst = {{ nssai_sst }}, sd = {{ nssai_sd }} }) });
+    tracking_area_code  =  {{ tac }};
+    plmn_list = ({ mcc = {{ mcc }}; mnc = {{ mnc }}; mnc_length = {{ mnc_length }}; snssaiList = ({ sst = {{ nssai_sst }}, sd = 0x{{ nssai_sd }} }) });
 
 
     nr_cellid = 12345678L;

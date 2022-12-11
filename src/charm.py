@@ -135,6 +135,8 @@ class Oai5GCUOperatorCharm(CharmBase):
         template = jinja2_environment.get_template(f"{CONFIG_FILE_NAME}.j2")
         content = template.render(
             gnb_cu_name=self._config_gnb_cu_name,
+            gnb_cu_id=self._config_gnb_cu_id,
+            tac=self._config_tac,
             mcc=self._config_mcc,
             mnc=self._config_mnc,
             mnc_length=self._config_mnc_length,
@@ -169,6 +171,14 @@ class Oai5GCUOperatorCharm(CharmBase):
     @property
     def _config_gnb_cu_name(self) -> str:
         return "oai-cu-rfsim"
+
+    @property
+    def _config_gnb_cu_id(self) -> str:
+        return "e00"
+
+    @property
+    def _config_tac(self) -> str:
+        return "1"
 
     @property
     def _config_mcc(self) -> str:

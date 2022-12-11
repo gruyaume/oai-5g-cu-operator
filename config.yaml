@@ -27,5 +27,5 @@ options:
     type: string
     description: |
       The Slice Differentiator of the AMF.
-    default: "1"
+    default: "0027db"
     required: true
