@@ -16,7 +16,7 @@ from charms.observability_libs.v1.kubernetes_service_patch import (  # type: ign
 from jinja2 import Environment, FileSystemLoader
 from ops.charm import CharmBase, ConfigChangedEvent, InstallEvent
 from ops.main import main
-from ops.model import ActiveStatus, BlockedStatus, ModelError, WaitingStatus
+from ops.model import ActiveStatus, BlockedStatus, WaitingStatus
 
 from kubernetes import Kubernetes
 
@@ -71,6 +71,7 @@ class Oai5GCUOperatorCharm(CharmBase):
         self.framework.observe(self.on.config_changed, self._on_config_changed)
         self.framework.observe(self.on.fiveg_n2_relation_changed, self._on_config_changed)
         self.framework.observe(self.on.fiveg_f1_relation_joined, self._on_fiveg_f1_relation_joined)
+        self.framework.observe(self.on.fiveg_f1_relation_changed, self._on_config_changed)
 
     def _on_fiveg_f1_relation_joined(self, event) -> None:
         """Triggered when a relation is joined.
@@ -79,10 +80,6 @@ class Oai5GCUOperatorCharm(CharmBase):
             event: Relation Joined Event
         """
         if not self.unit.is_leader():
-            return
-        if not self._cu_service_started:
-            logger.info("CU service not started yet, deferring event")
-            event.defer()
             return
         cu_hostname, cu_ipv4_address = self.kubernetes.get_service_load_balancer_address(
             name=self.app.name
@@ -94,18 +91,6 @@ class Oai5GCUOperatorCharm(CharmBase):
             cu_port=self._config_f1_cu_port,
             relation_id=event.relation.id,
         )
-
-    @property
-    def _cu_service_started(self) -> bool:
-        if not self._container.can_connect():
-            return False
-        try:
-            service = self._container.get_service(self._service_name)
-        except ModelError:
-            return False
-        if not service.is_running():
-            return False
-        return True
 
     def _on_install(self, event: InstallEvent) -> None:
         """Triggered on install event.
@@ -139,9 +124,17 @@ class Oai5GCUOperatorCharm(CharmBase):
         if not self._amf_n2_relation_created:
             self.unit.status = BlockedStatus("Waiting for relation to AMF to be created")
             return
+        if not self._f1_relation_created:
+            self.unit.status = BlockedStatus("Waiting for relation to DU to be created")
+            return
         if not self.amf_n2_requires.amf_address_available:
             self.unit.status = WaitingStatus(
                 "Waiting for AMF IPv4 address to be available in relation data"
+            )
+            return
+        if not self.f1_provides.du_address_available:
+            self.unit.status = WaitingStatus(
+                "Waiting for DU IPv4 address to be available in relation data"
             )
             return
         self._push_config()
@@ -156,11 +149,15 @@ class Oai5GCUOperatorCharm(CharmBase):
         """
         self._container.add_layer("cu", self._pebble_layer, combine=True)
         self._container.replan()
-        self.unit.status = ActiveStatus()
+        self._container.restart(self._service_name)
 
     @property
     def _amf_n2_relation_created(self) -> bool:
         return self._relation_created("fiveg-n2")
+
+    @property
+    def _f1_relation_created(self) -> bool:
+        return self._relation_created("fiveg-f1")
 
     def _relation_created(self, relation_name: str) -> bool:
         if not self.model.get_relation(relation_name):
@@ -182,8 +179,8 @@ class Oai5GCUOperatorCharm(CharmBase):
             f1_interface_name=self._config_f1_interface_name,
             f1_cu_ipv4_address=self._gnb_ipv4_address,
             f1_cu_port=self._config_f1_cu_port,
-            f1_du_ipv4_address=self._config_f1_du_ipv4_address,
-            f1_du_port=self._config_f1_du_port,
+            f1_du_ipv4_address=self.f1_provides.du_address,
+            f1_du_port=self.f1_provides.du_port,
             amf_ipv4_address=self.amf_n2_requires.amf_address,
             amf_ipv6_address=self._config_amf_ipv6_address,
             gnb_nga_interface_name=self._config_gnb_nga_interface_name,
@@ -252,16 +249,6 @@ class Oai5GCUOperatorCharm(CharmBase):
 
     @property
     def _config_f1_cu_port(self) -> str:
-        return "2153"
-
-    @property
-    def _config_f1_du_ipv4_address(self) -> str:
-        # TODO: Replace with relation data
-        return "127.0.0.1"
-
-    @property
-    def _config_f1_du_port(self) -> str:
-        # TODO: Replace with relation data
         return "2153"
 
     @property
