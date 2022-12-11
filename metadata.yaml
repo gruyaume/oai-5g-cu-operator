@@ -28,3 +28,7 @@ resources:
 requires:
   fiveg-n2:
     interface: fiveg-n2
+
+provides:
+  fiveg-f1:
+    interface: fiveg-f1

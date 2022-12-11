@@ -13,6 +13,7 @@ from lightkube.models.core_v1 import (
 )
 from lightkube.models.core_v1 import ServiceStatus as K8sServiceStatus
 from ops.model import ActiveStatus
+from ops.pebble import ServiceInfo, ServiceStartup, ServiceStatus
 from ops.testing import Harness
 
 from charm import Oai5GCUOperatorCharm
@@ -46,6 +47,21 @@ class TestCharm(unittest.TestCase):
         )
         return amf_address
 
+    def _create_du_relation_with_valid_data(self):
+        relation_id = self.harness.add_relation("fiveg-f1", "du")
+        self.harness.add_relation_unit(relation_id=relation_id, remote_unit_name="du/0")
+
+        du_address = "5.6.7.8"
+        du_port = "5678"
+        key_values = {
+            "du_address": du_address,
+            "du_port": du_port,
+        }
+        self.harness.update_relation_data(
+            relation_id=relation_id, app_or_unit="du", key_values=key_values
+        )
+        return du_address, du_port
+
     @patch("lightkube.Client.get")
     @patch("ops.model.Container.push")
     def test_given_amf_relation_contains_amf_info_when_amf_relation_joined_then_config_file_is_pushed(  # noqa: E501
@@ -60,6 +76,7 @@ class TestCharm(unittest.TestCase):
         )
         self.harness.set_can_connect(container="cu", val=True)
         amf_address = self._create_amf_relation_with_valid_data()
+        du_address, du_port = self._create_du_relation_with_valid_data()
 
         mock_push.assert_called_with(
             path="/opt/oai-gnb/etc/gnb.conf",
@@ -82,11 +99,11 @@ class TestCharm(unittest.TestCase):
             '    tr_s_preference = "f1";\n\n'
             '    local_s_if_name = "eth0";\n'
             '    local_s_address = "1.2.3.4";\n'
-            '    remote_s_address = "127.0.0.1";\n'
+            f'    remote_s_address = "{du_address}";\n'
             "    local_s_portc   = 501;\n"
             "    local_s_portd   = 2153;\n"
             "    remote_s_portc  = 500;\n"
-            "    remote_s_portd  = 2153;\n"
+            f"    remote_s_portd  = {du_port};\n"
             "    min_rxtxtime                                              = 6;\n\n"
             "     pdcch_ConfigSIB1 = (\n"
             "      {\n"
@@ -274,6 +291,7 @@ class TestCharm(unittest.TestCase):
         )
         self.harness.set_can_connect(container="cu", val=True)
         self._create_amf_relation_with_valid_data()
+        du_address, du_port = self._create_du_relation_with_valid_data()
 
         expected_plan = {
             "services": {
@@ -291,3 +309,32 @@ class TestCharm(unittest.TestCase):
         service = self.harness.model.unit.get_container("cu").get_service("cu")
         self.assertTrue(service.is_running())
         self.assertEqual(self.harness.model.unit.status, ActiveStatus())
+
+    @patch("lightkube.Client.get")
+    @patch("ops.model.Container.get_service")
+    def test_given_unit_is_leader_when_f1_relation_joined_then_cu_relation_data_is_set(
+        self, patch_get_service, patch_k8s_get
+    ):
+        load_balancer_ip = "5.6.7.8"
+        patch_k8s_get.return_value = Service(
+            spec=ServiceSpec(type="LoadBalancer"),
+            status=K8sServiceStatus(
+                loadBalancer=LoadBalancerStatus(ingress=[LoadBalancerIngress(ip=load_balancer_ip)])
+            ),
+        )
+        self.harness.set_leader(True)
+        self.harness.set_can_connect(container="cu", val=True)
+        patch_get_service.return_value = ServiceInfo(
+            name="cu",
+            current=ServiceStatus.ACTIVE,
+            startup=ServiceStartup.ENABLED,
+        )
+
+        relation_id = self.harness.add_relation(relation_name="fiveg-f1", remote_app="cu")
+        self.harness.add_relation_unit(relation_id=relation_id, remote_unit_name="cu/0")
+
+        relation_data = self.harness.get_relation_data(
+            relation_id=relation_id, app_or_unit=self.harness.model.app.name
+        )
+
+        assert relation_data["cu_address"] == load_balancer_ip
