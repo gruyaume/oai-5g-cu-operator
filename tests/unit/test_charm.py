@@ -93,7 +93,7 @@ class TestCharm(unittest.TestCase):
             '    gNB_name  =  "oai-cu-rfsim";\n\n'
             "    // Tracking area code, 0x0000 and 0xfffe are reserved values\n"
             "    tracking_area_code  =  1;\n"
-            "    plmn_list = ({ mcc = 208; mnc = 99; mnc_length = 2; snssaiList = ({ sst = 1, sd = 0x0027db }) });\n\n\n"  # noqa: E501, W505
+            "    plmn_list = ({ mcc = 208; mnc = 99; mnc_length = 2; snssaiList = ({ sst = 1, sd = 0x000001 }) });\n\n\n"  # noqa: E501, W505
             "    nr_cellid = 12345678L;\n"
             "    force_256qam_off = 1;\n\n"
             '    tr_s_preference = "f1";\n\n'
