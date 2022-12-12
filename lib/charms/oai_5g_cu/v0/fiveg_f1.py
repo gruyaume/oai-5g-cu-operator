@@ -18,7 +18,7 @@ LIBAPI = 0
 
 # Increment this PATCH version before using `charmcraft publish-lib` or reset
 # to 0 if you are raising the major API version
-LIBPATCH = 3
+LIBPATCH = 4
 
 
 logger = logging.getLogger(__name__)
@@ -217,13 +217,43 @@ class FiveGF1Provides(Object):
         relation = self.model.get_relation(self.relationship_name, relation_id=relation_id)
         if not relation:
             raise RuntimeError(f"Relation {self.relationship_name} not created yet.")
+        if self.cu_data_is_set(cu_address=cu_address, cu_port=cu_port):
+            return
         relation.data[self.charm.app].update(
             {
                 "cu_address": cu_address,
                 "cu_port": cu_port,
             }
         )
-    
+
+    def set_cu_information_for_all_relations(self, cu_address: str, cu_port: str):
+        relations = self.model.relations
+        for relation in relations[self.relationship_name]:
+            self.set_cu_information(
+                cu_address=cu_address,
+                cu_port=cu_port,
+                relation_id=relation.id,
+            )
+
+    def cu_data_is_set(self, cu_address: str, cu_port: str) -> bool:
+        """Returns whether cu_address is set in relation data."""
+        relation = self.model.get_relation(self.relationship_name)
+        if not relation:
+            raise RuntimeError(f"Relation {self.relationship_name} not created yet.")
+        if "cu_address" not in relation.data[self.charm.app]:
+            logger.info("cu_address not set in relation data")
+            return False
+        if relation.data[self.charm.app]["cu_address"] != cu_address:
+            logger.info(f"cu_address not set to {cu_address} in relation data")
+            return False
+        if "cu_port" not in relation.data[self.charm.app]:
+            logger.info("cu_port not set in relation data")
+            return False
+        if relation.data[self.charm.app]["cu_port"] != cu_port:
+            logger.info(f"cu_port not set to {cu_port} in relation data")
+            return False
+        return True
+
     def _on_relation_changed(self, event: RelationChangedEvent) -> None:
         """Handler triggered on relation changed event.
 

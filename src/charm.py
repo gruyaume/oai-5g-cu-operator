@@ -16,7 +16,7 @@ from charms.observability_libs.v1.kubernetes_service_patch import (  # type: ign
 from jinja2 import Environment, FileSystemLoader
 from ops.charm import CharmBase, ConfigChangedEvent, InstallEvent
 from ops.main import main
-from ops.model import ActiveStatus, BlockedStatus, WaitingStatus
+from ops.model import ActiveStatus, BlockedStatus, ModelError, WaitingStatus
 
 from kubernetes import Kubernetes
 
@@ -81,6 +81,13 @@ class Oai5GCUOperatorCharm(CharmBase):
         """
         if not self.unit.is_leader():
             return
+        if not self._cu_service_started:
+            logger.info("CU service not started yet, deferring event")
+            event.defer()
+            return
+        self._set_f1_relation_data(event.relation.id)
+
+    def _set_f1_relation_data(self, relation_id: int) -> None:
         cu_hostname, cu_ipv4_address = self.kubernetes.get_service_load_balancer_address(
             name=self.app.name
         )
@@ -89,8 +96,20 @@ class Oai5GCUOperatorCharm(CharmBase):
         self.f1_provides.set_cu_information(
             cu_address=cu_ipv4_address,
             cu_port=self._config_f1_cu_port,
-            relation_id=event.relation.id,
+            relation_id=relation_id,
         )
+
+    @property
+    def _cu_service_started(self) -> bool:
+        if not self._container.can_connect():
+            return False
+        try:
+            service = self._container.get_service(self._service_name)
+        except ModelError:
+            return False
+        if not service.is_running():
+            return False
+        return True
 
     def _on_install(self, event: InstallEvent) -> None:
         """Triggered on install event.
@@ -139,7 +158,19 @@ class Oai5GCUOperatorCharm(CharmBase):
             return
         self._push_config()
         self._update_pebble_layer()
+        if self.unit.is_leader():
+            self._set_cu_information_for_all_relations()
         self.unit.status = ActiveStatus()
+
+    def _set_cu_information_for_all_relations(self):
+        cu_hostname, cu_ipv4_address = self.kubernetes.get_service_load_balancer_address(
+            name=self.app.name
+        )
+        if not cu_ipv4_address:
+            raise Exception("Loadbalancer doesn't have an IP address")
+        self.f1_provides.set_cu_information_for_all_relations(
+            cu_address=cu_ipv4_address, cu_port=self._config_f1_cu_port
+        )
 
     def _update_pebble_layer(self) -> None:
         """Updates pebble layer with new configuration.
