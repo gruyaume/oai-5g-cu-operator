@@ -217,7 +217,7 @@ class FiveGF1Provides(Object):
         relation = self.model.get_relation(self.relationship_name, relation_id=relation_id)
         if not relation:
             raise RuntimeError(f"Relation {self.relationship_name} not created yet.")
-        if self.cu_data_is_set(cu_address=cu_address, cu_port=cu_port):
+        if self.cu_data_is_set(relation_id=relation_id, cu_address=cu_address, cu_port=cu_port):
             return
         relation.data[self.charm.app].update(
             {
@@ -235,9 +235,9 @@ class FiveGF1Provides(Object):
                 relation_id=relation.id,
             )
 
-    def cu_data_is_set(self, cu_address: str, cu_port: str) -> bool:
+    def cu_data_is_set(self, relation_id: int, cu_address: str, cu_port: str) -> bool:
         """Returns whether cu_address is set in relation data."""
-        relation = self.model.get_relation(self.relationship_name)
+        relation = self.model.get_relation(self.relationship_name, relation_id=relation_id)
         if not relation:
             raise RuntimeError(f"Relation {self.relationship_name} not created yet.")
         if "cu_address" not in relation.data[self.charm.app]:
