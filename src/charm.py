@@ -18,7 +18,7 @@ from ops.charm import CharmBase, ConfigChangedEvent, InstallEvent
 from ops.main import main
 from ops.model import ActiveStatus, BlockedStatus, ModelError, WaitingStatus
 
-from kubernetes import Kubernetes
+from kubernetes_client import KubernetesClient
 
 logger = logging.getLogger(__name__)
 
@@ -66,7 +66,7 @@ class Oai5GCUOperatorCharm(CharmBase):
         )
         self.f1_provides = FiveGF1Provides(self, "fiveg-f1")
         self.amf_n2_requires = FiveGN2Requires(self, "fiveg-n2")
-        self.kubernetes = Kubernetes(namespace=self.model.name)
+        self.kubernetes = KubernetesClient(namespace=self.model.name)
         self.framework.observe(self.on.install, self._on_install)
         self.framework.observe(self.on.config_changed, self._on_config_changed)
         self.framework.observe(self.on.fiveg_n2_relation_changed, self._on_config_changed)

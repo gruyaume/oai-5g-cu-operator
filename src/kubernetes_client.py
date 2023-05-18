@@ -14,7 +14,7 @@ from lightkube.types import PatchType
 logger = logging.getLogger(__name__)
 
 
-class Kubernetes:
+class KubernetesClient:
     """Kubernetes main class."""
 
     def __init__(self, namespace: str):

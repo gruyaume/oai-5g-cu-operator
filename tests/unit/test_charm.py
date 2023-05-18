@@ -26,7 +26,6 @@ class TestCharm(unittest.TestCase):
         lambda charm, ports, service_type: None,
     )
     def setUp(self, patch_lightkube_client):
-        ops.testing.SIMULATE_CAN_CONNECT = True
         self.model_name = "whatever"
         self.addCleanup(setattr, ops.testing, "SIMULATE_CAN_CONNECT", False)
         self.harness = Harness(Oai5GCUOperatorCharm)
