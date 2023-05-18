@@ -27,6 +27,6 @@ jobs:
         uses: gruyaume/charming-actions/upload-charm@dfdfb45aad559294fc9d217ffef730a1543e7e26
         with:
           built-charm-path: "sdcore-upf_ubuntu-22.04-amd64.charm"
-          credentials: "${{ secrets.CHARMHUB_TOKEN }}"
+          credentials: "${{ secrets.CHARMCRAFT_AUTH }}"
           github-token: "${{ secrets.GITHUB_TOKEN }}"
           channel: "${{ steps.channel.outputs.name }}"
