@@ -19,7 +19,7 @@ jobs:
         with:
           name: tested-charm
       - name: Move charm in current directory
-        run: find ./ -name sdcore-upf_ubuntu-22.04-amd64.charm -exec mv -t ./ {} \;
+        run: find ./ -name oai-5g-cu_ubuntu-22.04-amd64.charm -exec mv -t ./ {} \;
       - name: Select Charmhub channel
         uses: canonical/charming-actions/channel@2.2.5
         id: channel
