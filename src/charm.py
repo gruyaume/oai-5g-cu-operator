@@ -88,6 +88,7 @@ class Oai5GCUOperatorCharm(CharmBase):
         self._set_f1_relation_data(event.relation.id)
 
     def _set_f1_relation_data(self, relation_id: int) -> None:
+        """Sets F1 relation data"""
         cu_hostname, cu_ipv4_address = self.kubernetes.get_service_load_balancer_address(
             name=self.app.name
         )

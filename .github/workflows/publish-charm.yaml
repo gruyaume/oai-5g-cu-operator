@@ -14,19 +14,19 @@ jobs:
         uses: actions/checkout@v3
       - name: Install charmcraft
         run: sudo snap install charmcraft --classic
-      - name: Fetch Tested Charm
-        uses: actions/download-artifact@v3
-        with:
-          name: tested-charm
-      - name: Move charm in current directory
-        run: find ./ -name oai-5g-cu_ubuntu-22.04-amd64.charm -exec mv -t ./ {} \;
+#      - name: Fetch Tested Charm
+#        uses: actions/download-artifact@v3
+#        with:
+#          name: tested-charm
+#      - name: Move charm in current directory
+#        run: find ./ -name oai-5g-cu_ubuntu-22.04-amd64.charm -exec mv -t ./ {} \;
       - name: Select Charmhub channel
         uses: canonical/charming-actions/channel@2.2.5
         id: channel
       - name: Upload charm to charmhub
         uses: gruyaume/charming-actions/upload-charm@dfdfb45aad559294fc9d217ffef730a1543e7e26
         with:
-          built-charm-path: "oai-5g-cu_ubuntu-22.04-amd64.charm"
+#          built-charm-path: "oai-5g-cu_ubuntu-22.04-amd64.charm"
           credentials: "${{ secrets.CHARMCRAFT_AUTH }}"
           github-token: "${{ secrets.GITHUB_TOKEN }}"
           channel: "${{ steps.channel.outputs.name }}"

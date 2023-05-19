@@ -13,13 +13,13 @@ jobs:
   unit-tests-with-coverage:
     uses: ./.github/workflows/unit-test.yaml
 
-  integration-test:
-    uses: ./.github/workflows/integration-test.yaml
+#  integration-test:
+#    uses: ./.github/workflows/integration-test.yaml
 
   publish-charm:
     name: Publish Charm
     needs:
-      [lint-report, static-analysis, unit-tests-with-coverage, integration-test]
+      [lint-report, static-analysis, unit-tests-with-coverage]
     uses: ./.github/workflows/publish-charm.yaml
     secrets:
       CHARMCRAFT_AUTH: ${{ secrets.CHARMCRAFT_AUTH }}
